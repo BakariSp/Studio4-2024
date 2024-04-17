@@ -13,7 +13,7 @@ PlayerSettings:
   useOnDemandResources: 0
   accelerometerFrequency: 60
   companyName: LinghangCai
-  productName: NarrativeSpace
+  productName: Narration
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
@@ -135,7 +135,7 @@ PlayerSettings:
   vulkanEnableLateAcquireNextImage: 0
   vulkanEnableCommandBufferRecycling: 1
   loadStoreDebugModeEnabled: 0
-  bundleVersion: 1.0
+  bundleVersion: 2.1
   preloadedAssets:
   - {fileID: 11400000, guid: 41d6244dfeae7b54ba656ef5ebc93f4c, type: 2}
   metroInputSource: 0
@@ -157,7 +157,8 @@ PlayerSettings:
   androidSupportedAspectRatio: 1
   androidMaxAspectRatio: 2.1
   applicationIdentifier:
-    Android: com.LinghangCai.NarrativeSpace
+    Android: com.LinghangCai.Narration
+    Standalone: com.LinghangCai.NarrativeSpace
   buildNumber:
     Standalone: 0
     VisionOS: 0
@@ -282,7 +283,7 @@ PlayerSettings:
   - m_BuildTarget: 
     m_Icons:
     - serializedVersion: 2
-      m_Icon: {fileID: 2800000, guid: b19750189191a434ba26fd8e4eb0ea65, type: 3}
+      m_Icon: {fileID: 2800000, guid: aed2b5e3ece59434387adf879acb0738, type: 3}
       m_Width: 128
       m_Height: 128
       m_Kind: 0

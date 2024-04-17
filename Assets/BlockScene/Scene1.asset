@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e14815e96707084599fba54b669ed3e, type: 3}
+  m_Name: Scene1
+  m_EditorClassIdentifier: 
+  Name: story1
+  Scene: {fileID: 2791814576789808769, guid: 030ab4306d02a2749bdd1e58787c4da9, type: 3}
+  Skybox: {fileID: 2100000, guid: c52c5d7968fa6c9499b0b5752f899bfb, type: 2}
+  SoundClip: {fileID: 8300000, guid: 52f6d888816602d408d26dfcbdbd6536, type: 3}
