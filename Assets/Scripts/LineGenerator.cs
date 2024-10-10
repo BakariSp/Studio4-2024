@@ -15,7 +15,7 @@ public class LineGenerator : MonoBehaviour
     private float distanceThreshold = 0.01f;
     private Queue<Vector3> positionHistory = new Queue<Vector3>();
     private List<LineRenderer> lineRenderers = new List<LineRenderer>(); 
-    private int historySize = 5; // Adjustable based on desired smoothness
+    // private int historySize = 5; // Adjustable based on desired smoothness
 
     private float proximityThreshold = 0.1f; // Threshold for how close the objects need to be to enable drawing
     private bool isDrawingEnabled = false; // Controls whether drawing is currently enabled
@@ -24,7 +24,7 @@ public class LineGenerator : MonoBehaviour
     {
         lineRenderer = GetComponent<LineRenderer>();
         drawingLight = GetComponent<Light>(); // Get the Light component
-        soundGenerator = GetComponent<SoundGenerator>();
+        // soundGenerator = GetComponent<SoundGenerator>(); disable sound for now
         prefabGenerator = GetComponent<PrefabGenerator>();
 
         if (drawingObject1 != null)
@@ -193,8 +193,8 @@ public class LineGenerator : MonoBehaviour
             Color lightColor = SlopeCalculator.GetColorFromSlope(slope);
             UpdateLightColor(lightColor);
 
-            soundGenerator.TriggerSoundBasedOnSlope(slope);
-            prefabGenerator.GeneratePrefabForSlope(slope);
+            // soundGenerator.TriggerSoundBasedOnSlope(slope);
+            // prefabGenerator.GeneratePrefabForSlope(slope);
         }
     }
 
@@ -220,7 +220,7 @@ public class LineGenerator : MonoBehaviour
             UpdateLightColor(lightColor); // Update the light color based on the slope
         }
         
-        soundGenerator.TriggerSoundBasedOnSlope(slope);
+        // soundGenerator.TriggerSoundBasedOnSlope(slope);
 
     }
 
