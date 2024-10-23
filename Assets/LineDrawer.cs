@@ -30,6 +30,7 @@ public class LineDrawer : MonoBehaviour
     private bool canStartNewRectangle = true;
     private LineRenderer leftHandLine;
     private LineRenderer rightHandLine;
+    private List<GameObject> allCreatedLines = new List<GameObject>();
 
     void Update()
     {
@@ -194,6 +195,8 @@ public class LineDrawer : MonoBehaviour
             rectangleRenderer.startWidth = 0.01f;
             rectangleRenderer.endWidth = 0.01f;
 
+            allCreatedLines.Add(rectangleObj); // Add to the list of all created lines
+
             Debug.Log($"Rectangle drawn with {finalPoints.Count} points. Mode: {currentRectangleMode}");
         }
         else
@@ -327,7 +330,8 @@ public class LineDrawer : MonoBehaviour
         {
             newLineRenderer.positionCount = 1;
             newLineRenderer.SetPosition(0, obj.transform.position);
-            activeLines[obj] = newLineRenderer; // Use indexer to update or add
+            activeLines[obj] = newLineRenderer;
+            allCreatedLines.Add(newLineObj); // Add to the list of all created lines
         }
     }
 
@@ -377,5 +381,19 @@ public class LineDrawer : MonoBehaviour
     {
         lineRenderer.positionCount = points.Count;
         lineRenderer.SetPositions(points.ToArray());
+    }
+
+    public void CleanAllLines()
+    {
+        foreach (GameObject lineObj in allCreatedLines)
+        {
+            Destroy(lineObj);
+        }
+
+        allCreatedLines.Clear();
+        activeLines.Clear();
+        inactiveObjects.Clear();
+
+        Debug.Log("All lines have been cleaned.");
     }
 }
