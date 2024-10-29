@@ -39,6 +39,22 @@ public class LineDrawer : MonoBehaviour
     private LineRenderer rightHandLine;
     private List<GameObject> allCreatedLines = new List<GameObject>();
 
+    public DoorSurfaceGenerator doorGenerator;
+    public Camera userCamera; // Reference to the user's camera
+
+    [Header("Door Detection Settings")]
+    [Tooltip("Maximum angle (in degrees) between door normal and vertical axis")]
+    [Range(0, 90)]
+    public float maxDoorAngle = 30f; // Previously this was fixed at ~17 degrees (0.3 in dot product)
+
+    [Tooltip("Minimum aspect ratio (height/width) for door detection")]
+    public float minDoorAspectRatio = 1.2f;
+
+    [Tooltip("Maximum aspect ratio (height/width) for door detection")]
+    public float maxDoorAspectRatio = 3.0f;
+
+    public bool InsideBoxCollider { get; set; }
+
     void Start()
     {
         // Initialize capture camera
@@ -80,10 +96,16 @@ public class LineDrawer : MonoBehaviour
             {
                 if (!activeLines.ContainsKey(obj) || inactiveObjects.Contains(obj))
                 {
-                    StartNewLine(obj);
-                    inactiveObjects.Remove(obj);
+                    if (!InsideBoxCollider || activeLines.ContainsKey(obj))
+                    {
+                        StartNewLine(obj);
+                        inactiveObjects.Remove(obj);
+                    }
                 }
-                DrawLine(obj);
+                if (activeLines.ContainsKey(obj))
+                {
+                    DrawLine(obj);
+                }
             }
             else if (!inactiveObjects.Contains(obj) && activeLines.ContainsKey(obj))
             {
@@ -152,7 +174,12 @@ public class LineDrawer : MonoBehaviour
             GameObject rectangleObj = DrawRectangle(combinedPoints);
             if (rectangleObj != null)
             {
-                CaptureDrawing(rectangleObj.GetComponent<LineRenderer>());
+                // Check if this is likely a vertical rectangle (door)
+                if (IsLikelyDoor(combinedPoints))
+                {
+                    GenerateDoorSurface(rectangleObj.GetComponent<LineRenderer>());
+                }
+                // CaptureDrawing(rectangleObj.GetComponent<LineRenderer>());
             }
             Debug.Log($"Rectangle drawing finished. Total points: {combinedPoints.Count}");
         }
@@ -528,5 +555,59 @@ public class LineDrawer : MonoBehaviour
             renderTexture.Release();
         if (captureCamera != null)
             Destroy(captureCamera.gameObject);
+    }
+
+    private bool IsLikelyDoor(List<Vector3> points)
+    {
+        if (points.Count < 4) return false;
+
+        // Calculate the average normal of the rectangle
+        Vector3 avgNormal = Vector3.zero;
+        for (int i = 0; i < points.Count - 2; i++)
+        {
+            Vector3 edge1 = points[i + 1] - points[i];
+            Vector3 edge2 = points[i + 2] - points[i + 1];
+            avgNormal += Vector3.Cross(edge1, edge2).normalized;
+        }
+        avgNormal.Normalize();
+
+        // Check verticality using the configured angle
+        float dotWithUp = Mathf.Abs(Vector3.Dot(avgNormal, Vector3.up));
+        float angleWithVertical = Mathf.Acos(dotWithUp) * Mathf.Rad2Deg;
+        bool isVertical = angleWithVertical > (90 - maxDoorAngle);
+
+        // Check aspect ratio
+        Vector3 size = CalculateRectangleSize(points);
+        float aspectRatio = size.y / size.x; // height / width
+        bool hasValidAspectRatio = aspectRatio >= minDoorAspectRatio && aspectRatio <= maxDoorAspectRatio;
+
+        return isVertical && hasValidAspectRatio;
+    }
+
+    private Vector3 CalculateRectangleSize(List<Vector3> points)
+    {
+        if (points.Count < 4) return Vector3.zero;
+
+        // Calculate width (distance between first two points)
+        float width = Vector3.Distance(points[0], points[1]);
+
+        // Calculate height (distance between first and third points)
+        float height = Vector3.Distance(points[0], points[2]);
+
+        return new Vector3(width, height, 0);
+    }
+
+    private void GenerateDoorSurface(LineRenderer rectangleRenderer)
+    {
+        if (doorGenerator == null || userCamera == null) return;
+
+        Vector3[] positions = new Vector3[rectangleRenderer.positionCount];
+        rectangleRenderer.GetPositions(positions);
+
+        GameObject doorSurface = doorGenerator.GenerateDoorSurface(positions, userCamera);
+        if (doorSurface != null)
+        {
+            allCreatedLines.Add(doorSurface); // Add to managed objects for cleanup
+        }
     }
 }
