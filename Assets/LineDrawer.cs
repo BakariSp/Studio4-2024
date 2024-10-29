@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.UI; // Add this for UI Image component
 
 public class LineDrawer : MonoBehaviour
 {
@@ -11,6 +12,12 @@ public class LineDrawer : MonoBehaviour
     public GameObject rightHandPen; // Right hand pen for rectangle mode
     public bool isRectangleMode = false;
     public Material lineMaterial; // Add this line to specify a material for the line renderer
+    public ShapeRecognizer shapeRecognizer;
+    public Image displayImage; // Add this field for the UI Image component
+    public int captureResolution = 512; // Resolution of the captured image
+    private RenderTexture renderTexture;
+    private Camera captureCamera;
+    [SerializeField] private LayerMask captureLayerMask; // Add this to control what layers to capture
 
     public enum RectangleMode
     {
@@ -31,6 +38,27 @@ public class LineDrawer : MonoBehaviour
     private LineRenderer leftHandLine;
     private LineRenderer rightHandLine;
     private List<GameObject> allCreatedLines = new List<GameObject>();
+
+    void Start()
+    {
+        // Initialize capture camera
+        GameObject captureCameraObj = new GameObject("CaptureCamera");
+        captureCamera = captureCameraObj.AddComponent<Camera>();
+        captureCamera.clearFlags = CameraClearFlags.SolidColor;
+        captureCamera.backgroundColor = Color.clear;
+        captureCamera.orthographic = true;
+        captureCamera.enabled = false; // We'll only use it for capturing
+        
+        // Set the culling mask to ignore specific layers
+        captureCamera.cullingMask = captureLayerMask;
+        
+        // Create render texture
+        renderTexture = new RenderTexture(captureResolution, captureResolution, 24);
+        renderTexture.antiAliasing = 4;
+
+        // Only capture the "Drawing" layer
+        captureCamera.cullingMask = (1 << LayerMask.NameToLayer("Drawing"));
+    }
 
     void Update()
     {
@@ -57,8 +85,11 @@ public class LineDrawer : MonoBehaviour
                 }
                 DrawLine(obj);
             }
-            else
+            else if (!inactiveObjects.Contains(obj) && activeLines.ContainsKey(obj))
             {
+                // Line drawing just finished
+                LineRenderer finishedLine = activeLines[obj];
+                CheckShapeRecognition(finishedLine);
                 inactiveObjects.Add(obj);
             }
         }
@@ -118,7 +149,11 @@ public class LineDrawer : MonoBehaviour
         if (leftHandPoints.Count > 0 && rightHandPoints.Count > 0)
         {
             List<Vector3> combinedPoints = CombineAndSmoothPoints();
-            DrawRectangle(combinedPoints);
+            GameObject rectangleObj = DrawRectangle(combinedPoints);
+            if (rectangleObj != null)
+            {
+                CaptureDrawing(rectangleObj.GetComponent<LineRenderer>());
+            }
             Debug.Log($"Rectangle drawing finished. Total points: {combinedPoints.Count}");
         }
         else
@@ -161,7 +196,7 @@ public class LineDrawer : MonoBehaviour
         return smoothedPoints;
     }
 
-    private void DrawRectangle(List<Vector3> points)
+    private GameObject DrawRectangle(List<Vector3> points)
     {
         List<Vector3> finalPoints;
 
@@ -198,11 +233,11 @@ public class LineDrawer : MonoBehaviour
             allCreatedLines.Add(rectangleObj); // Add to the list of all created lines
 
             Debug.Log($"Rectangle drawn with {finalPoints.Count} points. Mode: {currentRectangleMode}");
+            return rectangleObj;
         }
-        else
-        {
-            Debug.LogError("LineRenderer component not found on the instantiated prefab.");
-        }
+        
+        Debug.LogError("LineRenderer component not found on the instantiated prefab.");
+        return null;
     }
 
     private List<Vector3> SmoothPoints(List<Vector3> points)
@@ -325,13 +360,16 @@ public class LineDrawer : MonoBehaviour
     private void StartNewLine(GameObject obj)
     {
         GameObject newLineObj = Instantiate(lineRendererPrefab, Vector3.zero, Quaternion.identity);
+        // Set the layer to "Drawing"
+        newLineObj.layer = LayerMask.NameToLayer("Drawing");
+        
         LineRenderer newLineRenderer = newLineObj.GetComponent<LineRenderer>();
         if (newLineRenderer != null)
         {
             newLineRenderer.positionCount = 1;
             newLineRenderer.SetPosition(0, obj.transform.position);
             activeLines[obj] = newLineRenderer;
-            allCreatedLines.Add(newLineObj); // Add to the list of all created lines
+            allCreatedLines.Add(newLineObj);
         }
     }
 
@@ -364,6 +402,9 @@ public class LineDrawer : MonoBehaviour
     private LineRenderer CreateTemporaryLineRenderer()
     {
         GameObject tempLineObj = Instantiate(lineRendererPrefab, Vector3.zero, Quaternion.identity);
+        // Set the layer to "Drawing"
+        tempLineObj.layer = LayerMask.NameToLayer("Drawing");
+        
         LineRenderer tempLine = tempLineObj.GetComponent<LineRenderer>();
         if (tempLine != null)
         {
@@ -395,5 +436,97 @@ public class LineDrawer : MonoBehaviour
         inactiveObjects.Clear();
 
         Debug.Log("All lines have been cleaned.");
+    }
+
+    private void CheckShapeRecognition(LineRenderer lineRenderer)
+    {
+        if (!isRectangleMode && shapeRecognizer != null)
+        {
+            shapeRecognizer.RecognizeShape(lineRenderer);
+            CaptureDrawing(lineRenderer);
+        }
+    }
+
+    private void CaptureDrawing(LineRenderer lineRenderer)
+    {
+        if (displayImage == null || lineRenderer == null) return;
+
+        // Calculate bounds of just this line
+        Bounds bounds = CalculateLineBounds(lineRenderer);
+        
+        // Position and setup camera
+        captureCamera.orthographicSize = bounds.extents.magnitude;
+        captureCamera.transform.position = bounds.center - Vector3.forward * 10;
+        captureCamera.targetTexture = renderTexture;
+        
+        // Temporarily disable all other line renderers
+        Dictionary<LineRenderer, bool> previousStates = new Dictionary<LineRenderer, bool>();
+        foreach (GameObject lineObj in allCreatedLines)
+        {
+            if (lineObj != null)
+            {
+                LineRenderer line = lineObj.GetComponent<LineRenderer>();
+                if (line != null && line != lineRenderer)
+                {
+                    previousStates[line] = line.enabled;
+                    line.enabled = false;
+                }
+            }
+        }
+        
+        // Render to texture
+        captureCamera.Render();
+        
+        // Create a new texture and read pixels
+        Texture2D texture = new Texture2D(captureResolution, captureResolution, TextureFormat.RGBA32, false);
+        RenderTexture.active = renderTexture;
+        texture.ReadPixels(new Rect(0, 0, captureResolution, captureResolution), 0, 0);
+        texture.Apply();
+        
+        // Create sprite and assign to image
+        Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+        displayImage.sprite = sprite;
+        
+        // Reset render texture
+        RenderTexture.active = null;
+        
+        // Restore previous line renderer states
+        foreach (var kvp in previousStates)
+        {
+            if (kvp.Key != null)
+            {
+                kvp.Key.enabled = kvp.Value;
+            }
+        }
+    }
+
+    private Bounds CalculateLineBounds(LineRenderer lineRenderer)
+    {
+        Bounds bounds = new Bounds();
+        
+        Vector3[] positions = new Vector3[lineRenderer.positionCount];
+        lineRenderer.GetPositions(positions);
+        
+        if (positions.Length > 0)
+        {
+            bounds = new Bounds(positions[0], Vector3.zero);
+            for (int i = 1; i < positions.Length; i++)
+            {
+                bounds.Encapsulate(positions[i]);
+            }
+        }
+        
+        // Add some padding
+        bounds.Expand(bounds.size * 0.1f);
+        return bounds;
+    }
+
+    void OnDestroy()
+    {
+        // Clean up
+        if (renderTexture != null)
+            renderTexture.Release();
+        if (captureCamera != null)
+            Destroy(captureCamera.gameObject);
     }
 }
