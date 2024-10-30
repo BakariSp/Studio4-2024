@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UI; // Add this for UI Image component
+using System;
 
 public class LineDrawer : MonoBehaviour
 {
@@ -55,6 +56,13 @@ public class LineDrawer : MonoBehaviour
 
     public bool InsideBoxCollider { get; set; }
 
+    public event Action<ShapeDrawingEvent> OnShapeDrawn;
+    private List<IShapeProcessor> shapeProcessors = new List<IShapeProcessor>();
+
+    [Header("Shape Detection Settings")]
+    [SerializeField] private float closeShapeThreshold = 0.1f; // Maximum distance between start and end points to consider a shape closed
+    [SerializeField] private bool allowOpenShapes = false; // Whether to allow open shapes to be recognized
+
     void Start()
     {
         // Initialize capture camera
@@ -74,6 +82,9 @@ public class LineDrawer : MonoBehaviour
 
         // Only capture the "Drawing" layer
         captureCamera.cullingMask = (1 << LayerMask.NameToLayer("Drawing"));
+
+        // Find and register all shape processors
+        shapeProcessors.AddRange(GetComponents<IShapeProcessor>());
     }
 
     void Update()
@@ -174,12 +185,8 @@ public class LineDrawer : MonoBehaviour
             GameObject rectangleObj = DrawRectangle(combinedPoints);
             if (rectangleObj != null)
             {
-                // Check if this is likely a vertical rectangle (door)
-                if (IsLikelyDoor(combinedPoints))
-                {
-                    GenerateDoorSurface(rectangleObj.GetComponent<LineRenderer>());
-                }
-                // CaptureDrawing(rectangleObj.GetComponent<LineRenderer>());
+                CheckShapeRecognition(rectangleObj.GetComponent<LineRenderer>());
+                CaptureDrawing(rectangleObj.GetComponent<LineRenderer>());
             }
             Debug.Log($"Rectangle drawing finished. Total points: {combinedPoints.Count}");
         }
@@ -282,53 +289,87 @@ public class LineDrawer : MonoBehaviour
 
     private List<Vector3> CreatePerfectRectangle(List<Vector3> points)
     {
-        if (points.Count < 2)
-            return points;
+        if (points.Count < 4) return points;
 
-        // Sample points if there are too many
-        List<Vector3> sampledPoints = SamplePoints(points, 100); // Sample up to 100 points
+        // Get the camera's view plane
+        Plane viewPlane = new Plane(-userCamera.transform.forward, points[0]);
+        Vector3 upDirection = Vector3.up;
+        Vector3 rightDirection = Vector3.Cross(upDirection, -userCamera.transform.forward).normalized;
 
-        // Calculate the center point
-        Vector3 center = sampledPoints.Aggregate(Vector3.zero, (sum, p) => sum + p) / sampledPoints.Count;
-
-        // Calculate the covariance matrix
-        float[,] covariance = new float[3, 3];
-        foreach (Vector3 point in sampledPoints)
-        {
-            Vector3 diff = point - center;
-            for (int i = 0; i < 3; i++)
-                for (int j = 0; j < 3; j++)
-                    covariance[i, j] += diff[i] * diff[j];
-        }
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 3; j++)
-                covariance[i, j] /= sampledPoints.Count;
-
-        // Find the two principal axes (largest eigenvectors)
-        Vector3 axis1 = GetPrincipalAxis(covariance);
-        Vector3 axis2 = GetSecondPrincipalAxis(covariance, axis1);
-
-        // Project points onto the principal axes
-        float minProj1 = float.MaxValue, maxProj1 = float.MinValue;
-        float minProj2 = float.MaxValue, maxProj2 = float.MinValue;
+        // Project all points onto the view plane
+        List<Vector3> projectedPoints = new List<Vector3>();
         foreach (Vector3 point in points)
         {
-            Vector3 diff = point - center;
-            float proj1 = Vector3.Dot(diff, axis1);
-            float proj2 = Vector3.Dot(diff, axis2);
-            minProj1 = Mathf.Min(minProj1, proj1);
-            maxProj1 = Mathf.Max(maxProj1, proj1);
-            minProj2 = Mathf.Min(minProj2, proj2);
-            maxProj2 = Mathf.Max(maxProj2, proj2);
+            Ray ray = new Ray(userCamera.transform.position, point - userCamera.transform.position);
+            float enter;
+            if (viewPlane.Raycast(ray, out enter))
+            {
+                projectedPoints.Add(ray.GetPoint(enter));
+            }
         }
 
-        // Create the rectangle corners
-        Vector3 corner1 = center + axis1 * minProj1 + axis2 * minProj2;
-        Vector3 corner2 = center + axis1 * maxProj1 + axis2 * minProj2;
-        Vector3 corner3 = center + axis1 * maxProj1 + axis2 * maxProj2;
-        Vector3 corner4 = center + axis1 * minProj1 + axis2 * maxProj2;
+        if (projectedPoints.Count < 4) return points;
 
-        return new List<Vector3> { corner1, corner2, corner3, corner4, corner1 };
+        // Calculate the center point
+        Vector3 center = Vector3.zero;
+        foreach (Vector3 point in projectedPoints)
+        {
+            center += point;
+        }
+        center /= projectedPoints.Count;
+
+        // Find the principal axes in the view plane
+        Vector3 primaryAxis = Vector3.zero;
+        Vector3 secondaryAxis = Vector3.zero;
+        float maxSpread = 0;
+
+        // Project points onto the up and right directions to find the primary orientation
+        foreach (Vector3 direction in new[] { upDirection, rightDirection })
+        {
+            float minProj = float.MaxValue;
+            float maxProj = float.MinValue;
+            foreach (Vector3 point in projectedPoints)
+            {
+                float proj = Vector3.Dot(point - center, direction);
+                minProj = Mathf.Min(minProj, proj);
+                maxProj = Mathf.Max(maxProj, proj);
+            }
+            float spread = maxProj - minProj;
+            if (spread > maxSpread)
+            {
+                maxSpread = spread;
+                primaryAxis = direction;
+                secondaryAxis = Vector3.Cross(direction, -userCamera.transform.forward).normalized;
+            }
+        }
+
+        // Calculate the rectangle bounds along the primary and secondary axes
+        float minPrimary = float.MaxValue, maxPrimary = float.MinValue;
+        float minSecondary = float.MaxValue, maxSecondary = float.MinValue;
+
+        foreach (Vector3 point in projectedPoints)
+        {
+            Vector3 relativePos = point - center;
+            float primaryProj = Vector3.Dot(relativePos, primaryAxis);
+            float secondaryProj = Vector3.Dot(relativePos, secondaryAxis);
+            
+            minPrimary = Mathf.Min(minPrimary, primaryProj);
+            maxPrimary = Mathf.Max(maxPrimary, primaryProj);
+            minSecondary = Mathf.Min(minSecondary, secondaryProj);
+            maxSecondary = Mathf.Max(maxSecondary, secondaryProj);
+        }
+
+        // Create the perfect rectangle corners
+        List<Vector3> perfectCorners = new List<Vector3>
+        {
+            center + primaryAxis * minPrimary + secondaryAxis * minSecondary,
+            center + primaryAxis * maxPrimary + secondaryAxis * minSecondary,
+            center + primaryAxis * maxPrimary + secondaryAxis * maxSecondary,
+            center + primaryAxis * minPrimary + secondaryAxis * maxSecondary,
+            center + primaryAxis * minPrimary + secondaryAxis * minSecondary // Close the loop
+        };
+
+        return perfectCorners;
     }
 
     private List<Vector3> SamplePoints(List<Vector3> points, int sampleSize)
@@ -465,12 +506,114 @@ public class LineDrawer : MonoBehaviour
         Debug.Log("All lines have been cleaned.");
     }
 
+    private bool IsShapeClosed(Vector3[] points)
+    {
+        if (points.Length < 3) return false;
+        float distanceBetweenEnds = Vector3.Distance(points[0], points[points.Length - 1]);
+        return distanceBetweenEnds <= closeShapeThreshold;
+    }
+
     private void CheckShapeRecognition(LineRenderer lineRenderer)
     {
-        if (!isRectangleMode && shapeRecognizer != null)
+        if (shapeRecognizer == null) return;
+
+        Vector3[] points = new Vector3[lineRenderer.positionCount];
+        lineRenderer.GetPositions(points);
+        
+        bool isShapeClosed = IsShapeClosed(points);
+        ShapeType recognizedShape = ShapeType.None;
+        List<Vector3> perfectPoints = null;
+
+        // Check for line when mountain mode is on
+        MountainGenerator mountainGenerator = FindObjectOfType<MountainGenerator>();
+        if (mountainGenerator != null && mountainGenerator.IsMountainModeOn() && !isShapeClosed)
         {
-            shapeRecognizer.RecognizeShape(lineRenderer);
+            recognizedShape = ShapeType.Line;
+            DebugLog("Line detected for mountain generation");
+        }
+
+        // Only proceed with shape recognition if the shape is closed or we allow open shapes
+        if (isShapeClosed || allowOpenShapes)
+        {
+            List<Vector3> processedPoints = points.ToList();
+            
+            // Only close the shape if it's actually closed
+            if (isShapeClosed && points.Length > 2)
+            {
+                processedPoints.Add(processedPoints[0]);
+            }
+
+            DebugLog($"Shape Status: {(isShapeClosed ? "Closed" : "Open")}");
+            DebugLog($"Points Count: {points.Length}");
+
+            // For open shapes, only try to recognize certain shapes
+            if (!isShapeClosed)
+            {
+                // Add specific open shape recognition here if needed
+                DebugLog("Open shape detected - skipping closed shape recognition");
+                recognizedShape = ShapeType.Line; // or other appropriate type
+            }
+            else
+            {
+                // Check for closed shapes
+                if (shapeRecognizer.IsRectangle(processedPoints))
+                {
+                    recognizedShape = ShapeType.Rectangle;
+                    perfectPoints = CreatePerfectRectangle(processedPoints);
+                    DebugLog("Shape recognized as Rectangle");
+                }
+                else if (shapeRecognizer.IsCircle(processedPoints))
+                {
+                    recognizedShape = ShapeType.Circle;
+                    DebugLog("Shape recognized as Circle");
+                }
+                else if (shapeRecognizer.IsTriangle(processedPoints))
+                {
+                    recognizedShape = ShapeType.Triangle;
+                    DebugLog("Shape recognized as Triangle");
+                }
+                else
+                {
+                    DebugLog("No shape recognized");
+                }
+            }
+
+            // Update the line renderer with perfect points if available
+            if (perfectPoints != null)
+            {
+                lineRenderer.positionCount = perfectPoints.Count;
+                lineRenderer.SetPositions(perfectPoints.ToArray());
+            }
+            
+            // Create and broadcast the shape event
+            var shapeEvent = new ShapeDrawingEvent(
+                lineRenderer, 
+                processedPoints, 
+                recognizedShape,
+                isShapeClosed  // Add this property to ShapeDrawingEvent
+            );
+            
+            // Notify all processors
+            foreach (var processor in shapeProcessors)
+            {
+                processor.ProcessShape(shapeEvent);
+            }
+            
+            OnShapeDrawn?.Invoke(shapeEvent);
             CaptureDrawing(lineRenderer);
+        }
+        else
+        {
+            DebugLog("Shape is not closed and open shapes are not allowed");
+        }
+    }
+
+    private void DebugLog(string message)
+    {
+        Debug.Log(message);
+        if (DebugDisplay.Instance != null)
+        {
+            DebugDisplay.Instance.AddDebugMessage(message);
         }
     }
 
@@ -555,59 +698,5 @@ public class LineDrawer : MonoBehaviour
             renderTexture.Release();
         if (captureCamera != null)
             Destroy(captureCamera.gameObject);
-    }
-
-    private bool IsLikelyDoor(List<Vector3> points)
-    {
-        if (points.Count < 4) return false;
-
-        // Calculate the average normal of the rectangle
-        Vector3 avgNormal = Vector3.zero;
-        for (int i = 0; i < points.Count - 2; i++)
-        {
-            Vector3 edge1 = points[i + 1] - points[i];
-            Vector3 edge2 = points[i + 2] - points[i + 1];
-            avgNormal += Vector3.Cross(edge1, edge2).normalized;
-        }
-        avgNormal.Normalize();
-
-        // Check verticality using the configured angle
-        float dotWithUp = Mathf.Abs(Vector3.Dot(avgNormal, Vector3.up));
-        float angleWithVertical = Mathf.Acos(dotWithUp) * Mathf.Rad2Deg;
-        bool isVertical = angleWithVertical > (90 - maxDoorAngle);
-
-        // Check aspect ratio
-        Vector3 size = CalculateRectangleSize(points);
-        float aspectRatio = size.y / size.x; // height / width
-        bool hasValidAspectRatio = aspectRatio >= minDoorAspectRatio && aspectRatio <= maxDoorAspectRatio;
-
-        return isVertical && hasValidAspectRatio;
-    }
-
-    private Vector3 CalculateRectangleSize(List<Vector3> points)
-    {
-        if (points.Count < 4) return Vector3.zero;
-
-        // Calculate width (distance between first two points)
-        float width = Vector3.Distance(points[0], points[1]);
-
-        // Calculate height (distance between first and third points)
-        float height = Vector3.Distance(points[0], points[2]);
-
-        return new Vector3(width, height, 0);
-    }
-
-    private void GenerateDoorSurface(LineRenderer rectangleRenderer)
-    {
-        if (doorGenerator == null || userCamera == null) return;
-
-        Vector3[] positions = new Vector3[rectangleRenderer.positionCount];
-        rectangleRenderer.GetPositions(positions);
-
-        GameObject doorSurface = doorGenerator.GenerateDoorSurface(positions, userCamera);
-        if (doorSurface != null)
-        {
-            allCreatedLines.Add(doorSurface); // Add to managed objects for cleanup
-        }
     }
 }

@@ -11,9 +11,12 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/New Scene.unity
     guid: 2de89862e019c6749a1f0f537cb3c2c5
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/studio4 1.unity
     guid: 1b21d1fbb103b4242aa859c74130ca66
+  - enabled: 1
+    path: Assets/Scenes/Thesis test.unity
+    guid: dc425217b060ab247a3c49d03d2c3d65
   m_configObjects:
     Unity.XR.Oculus.Settings: {fileID: 11400000, guid: b8dc25a8fc85b434ba4947e3477e0c66, type: 2}
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 89b638320a8d42d438285a4f655df689, type: 2}

@@ -1,128 +1,82 @@
 using System.Collections.Generic;
 using UnityEngine;
-using TMPro;
 using System.Linq;
 
 public class ShapeRecognizer : MonoBehaviour
 {
-    public TextMeshProUGUI shapeText;
-    public TextMeshProUGUI debugText;
-    private List<Vector3> points = new List<Vector3>();
-    
     [SerializeField] private float angleTolerance = 15f;
     [SerializeField] private float distanceTolerance = 0.2f;
     [SerializeField] private float radiusTolerance = 0.25f;
+    [SerializeField] private float minPointsForShape = 10f; // Minimum points needed for shape recognition
 
-    private string debugInfo = "";
-
-    public void RecognizeShape(LineRenderer lineRenderer)
+    public bool IsRectangle(List<Vector3> points)
     {
-        points.Clear();
-        debugInfo = "";
-        for (int i = 0; i < lineRenderer.positionCount; i++)
+        if (points.Count < minPointsForShape) 
         {
-            points.Add(lineRenderer.GetPosition(i));
+            DebugLog("Not enough points for rectangle");
+            return false;
         }
-
-        debugInfo += $"Total Points: {points.Count}\n";
-
-        // Check if shape is open
-        float startEndDistance = Vector3.Distance(points[0], points[points.Count - 1]);
-        debugInfo += $"Start-End Distance: {startEndDistance:F3}\n";
-
-        if (startEndDistance > distanceTolerance)
-        {
-            Debug.Log("Open Shape Detected");
-            if (shapeText != null)
-                shapeText.text = "Shape: Open Shape";
-            if (debugText != null)
-                debugText.text = debugInfo;
-            return;
-        }
-
-        if (IsCircle(points))
-        {
-            Debug.Log("Circle Detected");
-            if (shapeText != null)
-                shapeText.text = "Shape: Circle";
-            if (debugText != null)
-                debugText.text = debugInfo;
-        }
-        else if (IsRectangle(points))
-        {
-            Debug.Log("Rectangle Detected");
-            if (shapeText != null)
-                shapeText.text = "Shape: Rectangle";
-            if (debugText != null)
-                debugText.text = debugInfo;
-        }
-        else if (IsTriangle(points))
-        {
-            Debug.Log("Triangle Detected");
-            if (shapeText != null)
-                shapeText.text = "Shape: Triangle";
-            if (debugText != null)
-                debugText.text = debugInfo;
-        }
-        else
-        {
-            if (shapeText != null)
-                shapeText.text = "Shape: Unknown";
-            if (debugText != null)
-                debugText.text = debugInfo;
-        }
-    }
-
-    bool IsRectangle(List<Vector3> points)
-    {
-        if (points.Count < 4) return false;
 
         // Simplify points to get main corners
         List<Vector3> corners = SimplifyPoints(points, 4);
-        if (corners.Count != 4) return false;
+        if (corners.Count != 4)
+        {
+            DebugLog("Could not find 4 corners for rectangle");
+            return false;
+        }
 
-        // Calculate angles at each corner
+        // Calculate angles at each corner and side lengths
         List<float> angles = new List<float>();
+        List<float> sideLengths = new List<float>();
+        
         for (int i = 0; i < 4; i++)
         {
             Vector3 current = corners[i];
             Vector3 next = corners[(i + 1) % 4];
             Vector3 prev = corners[(i + 3) % 4];
 
+            // Calculate angle
             Vector3 dir1 = (next - current).normalized;
             Vector3 dir2 = (prev - current).normalized;
-            float angle = Vector3.Angle(dir1, dir2);
+            float angle = Vector3.Angle(dir1, -dir2);
             angles.Add(angle);
+
+            // Calculate side length
+            sideLengths.Add(Vector3.Distance(current, next));
         }
 
-        // Check for right angles (90 degrees)
-        foreach (float angle in angles)
-        {
-            if (Mathf.Abs(angle - 90) > angleTolerance)
-                return false;
-        }
+        // Check if all angles are close to 90 degrees
+        bool hasRightAngles = angles.All(angle => Mathf.Abs(angle - 90f) < angleTolerance);
 
-        // Check if opposite sides are approximately equal
-        float[] sides = new float[4];
-        for (int i = 0; i < 4; i++)
-        {
-            sides[i] = Vector3.Distance(corners[i], corners[(i + 1) % 4]);
-        }
+        // Check if opposite sides are similar in length
+        bool hasParallelSides = 
+            Mathf.Abs(sideLengths[0] - sideLengths[2]) < distanceTolerance &&
+            Mathf.Abs(sideLengths[1] - sideLengths[3]) < distanceTolerance;
 
-        return Mathf.Abs(sides[0] - sides[2]) < distanceTolerance &&
-               Mathf.Abs(sides[1] - sides[3]) < distanceTolerance;
+        DebugLog($"Rectangle validation: Right angles: {hasRightAngles}, Parallel sides: {hasParallelSides}");
+        return hasRightAngles && hasParallelSides;
     }
 
-    bool IsTriangle(List<Vector3> points)
+    public bool IsTriangle(List<Vector3> points)
     {
-        if (points.Count < 3) return false;
+        if (points.Count < minPointsForShape)
+        {
+            DebugLog("Not enough points for triangle");
+            return false;
+        }
 
         // Simplify points to get main corners
         List<Vector3> corners = SimplifyPoints(points, 3);
-        if (corners.Count != 3) return false;
+        if (corners.Count != 3)
+        {
+            DebugLog("Could not find 3 corners for triangle");
+            return false;
+        }
 
         // Calculate angles
         float[] angles = new float[3];
+        float[] sideLengths = new float[3];
+        
         for (int i = 0; i < 3; i++)
         {
             Vector3 current = corners[i];
@@ -132,42 +86,48 @@ public class ShapeRecognizer : MonoBehaviour
             Vector3 dir1 = (next - current).normalized;
             Vector3 dir2 = (prev - current).normalized;
             angles[i] = Vector3.Angle(dir1, dir2);
+            
+            // Calculate side lengths
+            sideLengths[i] = Vector3.Distance(current, next);
         }
 
         // Sum of angles in a triangle should be close to 180 degrees
-        float angleSum = angles[0] + angles[1] + angles[2];
-        return Mathf.Abs(angleSum - 180) < angleTolerance;
+        float angleSum = angles.Sum();
+        bool validAngles = Mathf.Abs(angleSum - 180) < angleTolerance;
+
+        // Check if any angle is too small or too large
+        bool hasValidAngles = angles.All(angle => angle > 20 && angle < 150);
+
+        // Check if the sides form a valid triangle (triangle inequality theorem)
+        bool validSides = true;
+        for (int i = 0; i < 3; i++)
+        {
+            float sum = sideLengths[(i + 1) % 3] + sideLengths[(i + 2) % 3];
+            if (sum <= sideLengths[i])
+            {
+                validSides = false;
+                break;
+            }
+        }
+
+        DebugLog($"Triangle validation: Valid angles: {validAngles}, Valid sides: {validSides}, Angle sum: {angleSum}");
+        return validAngles && hasValidAngles && validSides;
     }
 
-    bool IsCircle(List<Vector3> points)
+    public bool IsCircle(List<Vector3> points)
     {
-        if (points.Count < 10)
+        if (points.Count < minPointsForShape)
         {
-            debugInfo += "Failed: Not enough points for circle\n";
+            DebugLog("Not enough points for circle");
             return false;
         }
 
         // Calculate center point
-        Vector3 center = Vector3.zero;
-        foreach (var point in points)
-        {
-            center += point;
-        }
-        center /= points.Count;
-        debugInfo += $"Center: {center:F2}\n";
+        Vector3 center = points.Aggregate(Vector3.zero, (sum, p) => sum + p) / points.Count;
 
         // Calculate average radius and variation
-        float averageRadius = 0;
-        List<float> radiusVariations = new List<float>();
+        float averageRadius = points.Average(p => Vector3.Distance(p, center));
         
-        foreach (var point in points)
-        {
-            float radius = Vector3.Distance(point, center);
-            averageRadius += radius;
-        }
-        averageRadius /= points.Count;
-        debugInfo += $"Average Radius: {averageRadius:F3}\n";
-
         // Calculate radius variations
         float maxVariation = 0;
         float totalVariation = 0;
@@ -178,23 +138,21 @@ public class ShapeRecognizer : MonoBehaviour
             float variation = Mathf.Abs(radius - averageRadius) / averageRadius;
             maxVariation = Mathf.Max(maxVariation, variation);
             totalVariation += variation;
-            radiusVariations.Add(variation);
         }
 
         float averageVariation = totalVariation / points.Count;
-        debugInfo += $"Max Radius Variation: {maxVariation:F3}\n";
-        debugInfo += $"Average Variation: {averageVariation:F3}\n";
-        debugInfo += $"Tolerance: {radiusTolerance:F3}\n";
 
         // Consider both max variation and average variation
-        bool isCircle = maxVariation <= radiusTolerance && averageVariation <= (radiusTolerance * 0.5f);
-        debugInfo += isCircle ? "Result: Circle detected\n" : "Result: Not circular enough\n";
+        bool isCircular = maxVariation <= radiusTolerance && averageVariation <= (radiusTolerance * 0.5f);
         
-        return isCircle;
+        DebugLog($"Circle validation: Max variation: {maxVariation}, Avg variation: {averageVariation}");
+        return isCircular;
     }
 
     private List<Vector3> SimplifyPoints(List<Vector3> points, int targetCount)
     {
+        if (points.Count < targetCount) return points;
+
         List<Vector3> simplified = new List<Vector3>();
         float step = (float)points.Count / targetCount;
         
@@ -205,5 +163,14 @@ public class ShapeRecognizer : MonoBehaviour
         }
         
         return simplified;
+    }
+
+    private void DebugLog(string message)
+    {
+        Debug.Log($"ShapeRecognizer: {message}");
+        if (DebugDisplay.Instance != null)
+        {
+            DebugDisplay.Instance.AddDebugMessage($"ShapeRecognizer: {message}");
+        }
     }
 }
