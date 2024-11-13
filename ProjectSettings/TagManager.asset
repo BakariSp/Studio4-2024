@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Hands
   - Drawing
+  - Pen
   layers:
   - Default
   - TransparentFX

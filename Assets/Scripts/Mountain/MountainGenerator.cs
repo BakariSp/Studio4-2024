@@ -9,32 +9,45 @@ public class MountainGenerator : MonoBehaviour
     [SerializeField] private int segmentsPerUnit = 2;
     [SerializeField] private float noiseScale = 0.3f;
     [SerializeField] private float baseWidth = 20f;
-
-    [SerializeField] private bool isMountainModeOn = false;
-    [SerializeField] private TextMeshProUGUI modeStatusText;
-
     [SerializeField] private Camera userCamera;
+
+    [Header("Mode Settings")]
+    [SerializeField] private bool isMountainModeOn = false;
+    [SerializeField] private bool isTerrainMode = false;
+
+    [Header("Terrain Modification")]
+    [SerializeField] private Terrain targetTerrain;
+    [SerializeField] private float brushRadius = 5f;
+    [SerializeField] private float heightDelta = 0.1f;
+    [SerializeField] private AnimationCurve brushFalloff = AnimationCurve.EaseInOut(0, 1, 1, 0);
+
+    [Header("References")]
+    [SerializeField] private GameObject fingerObject;
+    [SerializeField] private RaycastController raycastController;
 
     public GameObject GenerateMountain(ShapeDrawingEvent drawingEvent)
     {
         if (drawingEvent.Points.Count < 2) return null;
 
+        // Project points onto the cylinder
+        List<Vector3> projectedPoints = ProjectPointsToCylinder(drawingEvent.Points);
+
         // Create mountain parent object
         GameObject mountainObject = new GameObject("Mountain");
-        
+
         // Generate mesh for the mountain
-        Mesh mountainMesh = CreateMountainMesh(drawingEvent.Points, drawingEvent.MountainHeight);
-        
+        Mesh mountainMesh = CreateMountainMesh(projectedPoints, drawingEvent.MountainHeight);
+
         // Add mesh components
         MeshFilter meshFilter = mountainObject.AddComponent<MeshFilter>();
         MeshRenderer meshRenderer = mountainObject.AddComponent<MeshRenderer>();
         MeshCollider meshCollider = mountainObject.AddComponent<MeshCollider>();
-        
+
         // Assign components
         meshFilter.mesh = mountainMesh;
         meshCollider.sharedMesh = mountainMesh;
         meshRenderer.material = mountainMaterial;
-        
+
         return mountainObject;
     }
 
@@ -121,38 +134,49 @@ public class MountainGenerator : MonoBehaviour
             if (userCamera == null) return projectedPoints;
         }
 
-        Vector3 cameraPosition = userCamera.transform.position;
-        
-        // Find the center point of the drawn line
-        Vector3 lineCenter = Vector3.zero;
         foreach (Vector3 point in points)
         {
-            lineCenter += point;
-        }
-        lineCenter /= points.Count;
-
-        // Project the center point to get the mountain's center position
-        Vector3 directionToCenter = (lineCenter - cameraPosition).normalized;
-        Vector3 horizontalDirection = new Vector3(directionToCenter.x, 0, directionToCenter.z).normalized;
-        Vector3 mountainCenter = cameraPosition + (horizontalDirection * projectionRadius);
-
-        // Calculate the scale of the mountain relative to the drawn line
-        float drawnLineWidth = 0f;
-        for (int i = 0; i < points.Count - 1; i++)
-        {
-            drawnLineWidth += Vector3.Distance(points[i], points[i + 1]);
-        }
-
-        // For each point, maintain its relative position to the center
-        for (int i = 0; i < points.Count; i++)
-        {
-            Vector3 pointOffset = points[i] - lineCenter;
-            // Keep the X and Z offset proportions but set Y to 0
-            Vector3 horizontalOffset = new Vector3(pointOffset.x, 0, pointOffset.z);
+            Vector3 directionToPoint = point - userCamera.transform.position;
+            directionToPoint.Normalize();
             
-            // Project the point while maintaining its relative position
-            Vector3 projectedPoint = mountainCenter + horizontalOffset;
+            // Project point at fixed distance
+            Vector3 projectedPoint = userCamera.transform.position + (directionToPoint * projectionRadius);
             projectedPoint.y = 0; // Keep at ground level
+            projectedPoints.Add(projectedPoint);
+        }
+
+        return projectedPoints;
+    }
+
+    private List<Vector3> ProjectPointsToCylinder(List<Vector3> points)
+    {
+        List<Vector3> projectedPoints = new List<Vector3>();
+
+        if (userCamera == null)
+        {
+            userCamera = Camera.main;
+            if (userCamera == null) return projectedPoints;
+        }
+
+        if (points.Count == 0) return projectedPoints;
+
+        // Project the first point to determine the cylinder radius
+        Vector3 firstPoint = points[0];
+        Vector3 directionToFirstPoint = firstPoint - userCamera.transform.position;
+        float distanceToFirstPoint = new Vector2(directionToFirstPoint.x, directionToFirstPoint.z).magnitude;
+        float cylinderRadius = distanceToFirstPoint;
+
+        foreach (Vector3 point in points)
+        {
+            Vector3 direction = point - userCamera.transform.position;
+            float currentDistance = new Vector2(direction.x, direction.z).magnitude;
+
+            // Normalize the horizontal direction
+            Vector3 horizontalDir = new Vector3(direction.x, 0, direction.z).normalized;
+
+            // Project the point onto the cylinder's surface
+            Vector3 projectedPoint = userCamera.transform.position + horizontalDir * cylinderRadius + Vector3.up * direction.y;
+
             projectedPoints.Add(projectedPoint);
         }
 
@@ -167,15 +191,160 @@ public class MountainGenerator : MonoBehaviour
     public void SetMountainMode(bool state)
     {
         isMountainModeOn = state;
-        if (modeStatusText != null)
+        if (state)
         {
-            modeStatusText.text = isMountainModeOn ? "Mountain Mode: ON" : "Mountain Mode: OFF";
+            isTerrainMode = false;
+        }
+        if (GeneratorUIController.Instance != null)
+        {
+            GeneratorUIController.Instance.UpdateModeStatus($"Mode: {(isMountainModeOn ? "Mountain" : isTerrainMode ? "Terrain" : "OFF")}");
         }
     }
 
     public void ToggleMountainMode()
     {
-        isMountainModeOn = !isMountainModeOn;
-        SetMountainMode(isMountainModeOn);
+        SetMountainMode(!isMountainModeOn);
+    }
+
+    public bool IsTerrainMode() => isTerrainMode;
+
+    public void SetTerrainMode(bool state)
+    {
+        isTerrainMode = state;
+        if (state)
+        {
+            isMountainModeOn = false;
+        }
+        if (GeneratorUIController.Instance != null)
+        {
+            GeneratorUIController.Instance.UpdateModeStatus($"Mode: {(isTerrainMode ? "Terrain" : isMountainModeOn ? "Mountain" : "OFF")}");
+        }
+    }
+
+    public void ToggleTerrainMode()
+    {
+        SetTerrainMode(!isTerrainMode);
+    }
+
+    public void GenerateTerrainModification(ShapeDrawingEvent drawingEvent)
+    {
+        if (targetTerrain == null)
+        {
+            DebugLog("Missing terrain reference!");
+            return;
+        }
+
+        if (userCamera == null)
+        {
+            userCamera = Camera.main;
+            if (userCamera == null)
+            {
+                DebugLog("No camera found!");
+                return;
+            }
+        }
+
+        // Project points at fixed distance
+        List<Vector3> projectedPoints = new List<Vector3>();
+        foreach (Vector3 point in drawingEvent.Points)
+        {
+            Vector3 directionToPoint = point - userCamera.transform.position;
+            directionToPoint.Normalize();
+            
+            Vector3 projectedPoint = userCamera.transform.position + (directionToPoint * projectionRadius);
+            projectedPoint.y = 0; // Keep at ground level
+            projectedPoints.Add(projectedPoint);
+        }
+
+        if (projectedPoints.Count == 0)
+        {
+            DebugLog("No points could be projected");
+            return;
+        }
+
+        // Modify terrain
+        TerrainData terrainData = targetTerrain.terrainData;
+        int heightmapWidth = terrainData.heightmapResolution;
+        int heightmapHeight = terrainData.heightmapResolution;
+        float[,] heights = terrainData.GetHeights(0, 0, heightmapWidth, heightmapHeight);
+
+        // Get terrain height scale for proper height modification
+        float terrainHeight = terrainData.size.y;
+        float normalizedHeightDelta = heightDelta / terrainHeight; // Convert to normalized height
+
+        foreach (Vector3 worldPoint in projectedPoints)
+        {
+            // Convert to terrain space
+            Vector3 localPos = worldPoint - targetTerrain.transform.position;
+            float normalizedX = Mathf.Clamp01(localPos.x / terrainData.size.x);
+            float normalizedZ = Mathf.Clamp01(localPos.z / terrainData.size.z);
+            
+            int terrainX = Mathf.RoundToInt(normalizedX * (heightmapWidth - 1));
+            int terrainZ = Mathf.RoundToInt(normalizedZ * (heightmapHeight - 1));
+            
+            // Calculate brush size in terrain space
+            int brushSize = Mathf.RoundToInt(brushRadius * (heightmapWidth - 1) / terrainData.size.x);
+            
+            // Apply height modification
+            for (int x = -brushSize; x <= brushSize; x++)
+            {
+                for (int z = -brushSize; z <= brushSize; z++)
+                {
+                    int sampleX = terrainX + x;
+                    int sampleZ = terrainZ + z;
+                    
+                    if (sampleX >= 0 && sampleX < heightmapWidth && 
+                        sampleZ >= 0 && sampleZ < heightmapHeight)
+                    {
+                        float distance = Mathf.Sqrt(x * x + z * z) / brushSize;
+                        if (distance <= 1)
+                        {
+                            float falloff = brushFalloff.Evaluate(distance);
+                            float currentHeight = heights[sampleZ, sampleX];
+                            // Use normalized height delta for proper scaling
+                            heights[sampleZ, sampleX] = Mathf.Lerp(currentHeight, 
+                                currentHeight + normalizedHeightDelta, 
+                                falloff);
+                        }
+                    }
+                }
+            }
+        }
+
+        terrainData.SetHeights(0, 0, heights);
+        DebugLog($"Terrain modified with {projectedPoints.Count} projected points");
+    }
+
+    private void DebugLog(string message)
+    {
+        Debug.Log($"MountainGenerator: {message}");
+        if (DebugDisplay.Instance != null)
+        {
+            DebugDisplay.Instance.AddDebugMessage($"MountainGenerator: {message}");
+        }
+    }
+
+    private Vector3 ProjectPointToSurface(Vector3 point)
+    {
+        if (userCamera == null)
+        {
+            userCamera = Camera.main;
+            if (userCamera == null) return point;
+        }
+
+        Vector3 directionToPoint = point - userCamera.transform.position;
+        directionToPoint.Normalize();
+        
+        int groundLayer = LayerMask.GetMask("Ground");
+        RaycastHit hit;
+        if (Physics.Raycast(userCamera.transform.position, directionToPoint, out hit, projectionRadius, groundLayer))
+        {
+            DebugLog($"Raycast hit ground at: {hit.point}");
+            return hit.point;
+        }
+        
+        Vector3 maxDistancePoint = userCamera.transform.position + (directionToPoint * projectionRadius);
+        DebugLog($"Raycast missed ground layer, placing at max distance: {maxDistancePoint}");
+        return maxDistancePoint;
     }
 }

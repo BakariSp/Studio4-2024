@@ -115,7 +115,10 @@ public class LineDrawer : MonoBehaviour
                 }
                 if (activeLines.ContainsKey(obj))
                 {
-                    DrawLine(obj);
+                    if (!InsideBoxCollider)
+                    {
+                        DrawLine(obj);
+                    }
                 }
             }
             else if (!inactiveObjects.Contains(obj) && activeLines.ContainsKey(obj))
