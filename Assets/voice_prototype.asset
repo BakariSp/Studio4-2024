@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-728634746227613297
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1c2918ba0e7451694416d42d69e0944, type: 3}
+  m_Name: WitComposerData
+  m_EditorClassIdentifier: 
+  canvases: []
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae5a46bda3295124c99b0e6537ac7252, type: 3}
+  m_Name: voice_prototype
+  m_EditorClassIdentifier: 
+  _clientAccessToken: 36POCLHRJNGLRQJPPGANO44O6MHGFST2
+  _appInfo:
+    name: spatial_design_bot
+    id: 2660596830994837
+    lang: en
+    isPrivate: 1
+    createdAt: 2024-12-01T15:10:46-0800
+    trainingStatus: 1
+    lastTrainDuration: 52
+    lastTrainedAt: 2024-12-01T18:20:17-0800
+    nextTrainAt: 2024-12-01T18:19:25-0800
+    intents: []
+    entities: []
+    traits: []
+    versionTags: []
+    voices: []
+  _configData:
+  - {fileID: -728634746227613297}
+  _configurationId: 2f4527e0-9436-4deb-91cd-966219a22413
+  timeoutMS: 10000
+  endpointConfiguration:
+    _uriScheme: 
+    _authority: 
+    _port: 0
+    _witApiVersion: 
+    _message: 
+    _speech: 
+    _dictation: 
+    _synthesize: 
+    _event: 
+    _converse: 
+  isDemoOnly: 0
+  useConduit: 1
+  _manifestLocalPath: ConduitManifest-b7ace45e-aa2e-45a4-a574-631691fe87c6.json
+  excludedAssemblies:
+  - Oculus.Voice.Demo, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+  - Meta.WitAi.Samples, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+  relaxedResolution: 0

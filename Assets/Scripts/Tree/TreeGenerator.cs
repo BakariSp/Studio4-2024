@@ -9,6 +9,8 @@ public class TreeGenerator : MonoBehaviour
     [SerializeField] private float minProjectionRadius = 5f;
     [SerializeField] private bool isTreeModeOn = false;
     [SerializeField] private Camera userCamera;
+    [Header("Layer Settings")]
+    [SerializeField] private LayerMask generatedObjectLayer;
 
     private void DebugLog(string message)
     {
@@ -93,6 +95,10 @@ public class TreeGenerator : MonoBehaviour
             Quaternion randomRotation = Quaternion.Euler(0, Random.Range(0f, 360f), 0);
             GameObject tree = Instantiate(treePrefab, position, randomRotation);
             tree.name = "Tree";
+            
+            // Set the layer for the tree and its children
+            SetObjectLayer(tree, generatedObjectLayer);
+            
             DebugLog($"Tree created at position: {position}");
             return tree;
         }
@@ -121,5 +127,20 @@ public class TreeGenerator : MonoBehaviour
     {
         isTreeModeOn = !isTreeModeOn;
         SetTreeMode(isTreeModeOn);
+    }
+
+    private void SetObjectLayer(GameObject obj, LayerMask layer)
+    {
+        if (obj == null) return;
+        
+        // Convert LayerMask to layer index
+        int layerIndex = (int)Mathf.Log(layer.value, 2);
+        
+        // Set layer for the object and all its children
+        obj.layer = layerIndex;
+        foreach (Transform child in obj.transform)
+        {
+            SetObjectLayer(child.gameObject, layer);
+        }
     }
 }

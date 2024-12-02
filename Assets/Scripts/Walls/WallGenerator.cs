@@ -6,13 +6,15 @@ public class WallGenerator : MonoBehaviour
 {
     [SerializeField] private Material wallMaterial;
     [SerializeField] private float maxProjectionRadius = 100f;
-    [SerializeField] private float minProjectionRadius = 5f;
+    // [SerializeField] private float minProjectionRadius = 5f;
     [SerializeField] private float wallHeight = 3f;
     [SerializeField] private float wallThickness = 0.5f;
     [SerializeField] private bool isWallModeOn = false;
     [SerializeField] private bool isStraightMode = true;
     [SerializeField] private Camera userCamera;
     [SerializeField] private float smoothingFactor = 0.5f;
+    [Header("Layer Settings")]
+    [SerializeField] private LayerMask generatedObjectLayer;
 
     public bool IsStraightMode() => isStraightMode;
     
@@ -243,6 +245,13 @@ public class WallGenerator : MonoBehaviour
             Vector3 wallScale = new Vector3(wallThickness, wallHeight, wallLength);
             wall.transform.localScale = wallScale;
             
+            // Replace the default capsule collider with a box collider
+            Destroy(wall.GetComponent<Collider>()); // Remove default collider
+            BoxCollider boxCollider = wall.AddComponent<BoxCollider>();
+            
+            // Set the layer for the wall
+            SetObjectLayer(wall, generatedObjectLayer);
+            
             if (wallMaterial != null)
             {
                 MeshRenderer renderer = wall.GetComponent<MeshRenderer>();
@@ -280,6 +289,21 @@ public class WallGenerator : MonoBehaviour
         if (GeneratorUIController.Instance != null)
         {
             GeneratorUIController.Instance.UpdateModeStatus($"Wall Mode: {(isWallModeOn ? "ON" : "OFF")}\nType: {(isStraightMode ? "Straight Only" : "Free Draw")}");
+        }
+    }
+
+    private void SetObjectLayer(GameObject obj, LayerMask layer)
+    {
+        if (obj == null) return;
+        
+        // Convert LayerMask to layer index
+        int layerIndex = (int)Mathf.Log(layer.value, 2);
+        
+        // Set layer for the object and all its children
+        obj.layer = layerIndex;
+        foreach (Transform child in obj.transform)
+        {
+            SetObjectLayer(child.gameObject, layer);
         }
     }
 }

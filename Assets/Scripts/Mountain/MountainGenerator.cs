@@ -25,6 +25,9 @@ public class MountainGenerator : MonoBehaviour
     [SerializeField] private GameObject fingerObject;
     [SerializeField] private RaycastController raycastController;
 
+    [Header("Layer Settings")]
+    [SerializeField] private LayerMask generatedObjectLayer;
+
     public GameObject GenerateMountain(ShapeDrawingEvent drawingEvent)
     {
         if (drawingEvent.Points.Count < 2) return null;
@@ -34,6 +37,9 @@ public class MountainGenerator : MonoBehaviour
 
         // Create mountain parent object
         GameObject mountainObject = new GameObject("Mountain");
+        
+        // Set the layer for the generated mountain
+        mountainObject.layer = (int)Mathf.Log(generatedObjectLayer.value, 2);
 
         // Generate mesh for the mountain
         Mesh mountainMesh = CreateMountainMesh(projectedPoints, drawingEvent.MountainHeight);
@@ -191,7 +197,7 @@ public class MountainGenerator : MonoBehaviour
     public void SetMountainMode(bool state)
     {
         isMountainModeOn = state;
-        if (state)
+        if (!state)
         {
             isTerrainMode = false;
         }
@@ -317,10 +323,17 @@ public class MountainGenerator : MonoBehaviour
 
     private void DebugLog(string message)
     {
+        if (!isMountainModeOn && !isTerrainMode)
+            return;
+        
         Debug.Log($"MountainGenerator: {message}");
         if (DebugDisplay.Instance != null)
         {
             DebugDisplay.Instance.AddDebugMessage($"MountainGenerator: {message}");
+        }
+        if (GeneratorUIController.Instance != null)
+        {
+            GeneratorUIController.Instance.UpdateDebugInfo($"MountainGenerator: {message}");
         }
     }
 
@@ -346,5 +359,20 @@ public class MountainGenerator : MonoBehaviour
         Vector3 maxDistancePoint = userCamera.transform.position + (directionToPoint * projectionRadius);
         DebugLog($"Raycast missed ground layer, placing at max distance: {maxDistancePoint}");
         return maxDistancePoint;
+    }
+
+    private void SetObjectLayer(GameObject obj, LayerMask layer)
+    {
+        if (obj == null) return;
+        
+        // Convert LayerMask to layer index
+        int layerIndex = (int)Mathf.Log(layer.value, 2);
+        
+        // Set layer for the object and all its children
+        obj.layer = layerIndex;
+        foreach (Transform child in obj.transform)
+        {
+            SetObjectLayer(child.gameObject, layer);
+        }
     }
 }

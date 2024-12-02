@@ -6,6 +6,9 @@ public class TreeProcessor : MonoBehaviour, IShapeProcessor
 
     private void DebugLog(string message)
     {
+        if (!treeGenerator || !treeGenerator.IsTreeModeOn())
+            return;
+            
         Debug.Log($"TreeProcessor: {message}");
         if (DebugDisplay.Instance != null)
         {

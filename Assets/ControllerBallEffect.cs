@@ -14,6 +14,7 @@ public class ControllerBallEffect : MonoBehaviour
         {
             objectRenderer = GetComponent<Renderer>();
         }
+        SetTransparency(0.1f);
     }
 
     private void OnTriggerEnter(Collider other)
@@ -21,7 +22,7 @@ public class ControllerBallEffect : MonoBehaviour
         if (objectRenderer != null)
         {
             isEnabled = true;
-            objectRenderer.enabled = isEnabled;
+            SetTransparency(0.8f);
             canvas.SetActive(isEnabled);
         }
     }
@@ -31,8 +32,15 @@ public class ControllerBallEffect : MonoBehaviour
         if (objectRenderer != null)
         {
             isEnabled = false;
-            objectRenderer.enabled = isEnabled;
+            SetTransparency(0.1f);
             canvas.SetActive(isEnabled);
         }
+    }
+
+    private void SetTransparency(float alpha)
+    {
+        Color color = objectRenderer.material.color;
+        color.a = alpha;
+        objectRenderer.material.color = color;
     }
 }

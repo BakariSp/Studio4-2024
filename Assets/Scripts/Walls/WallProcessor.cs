@@ -6,6 +6,9 @@ public class WallProcessor : MonoBehaviour, IShapeProcessor
 
     private void DebugLog(string message)
     {
+        if (!wallGenerator || !wallGenerator.IsWallModeOn())
+            return;
+            
         Debug.Log($"WallProcessor: {message}");
         if (DebugDisplay.Instance != null)
         {

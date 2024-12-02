@@ -2,6 +2,9 @@ using UnityEngine;
 
 public class PrefabGenerator : MonoBehaviour
 {
+    [Header("Layer Settings")]
+    [SerializeField] private LayerMask generatedObjectLayer;
+
     public GameObject[] prefabs; // Assign this in the inspector with your prefabs
     public Transform drawingObject; // The drawing object's transform
     public float scaleFactor = 0.3f;
@@ -30,15 +33,30 @@ public class PrefabGenerator : MonoBehaviour
         {
             return;
         }
-        else 
-        {
-            Vector3 position = drawingObject.position;
-            Quaternion rotation = Quaternion.Euler(0f, 0f, Random.Range(0f, 360f)); // Random rotation around the Z axis
-            Vector3 scale = Vector3.one * Random.Range(0.1f, 0.2f) * scaleFactor; // Random scale between 0.5 and 2
-
-            GameObject instance = Instantiate(prefab, position, rotation);
-            instance.transform.localScale = scale;
-        }
         
+        Vector3 position = drawingObject.position;
+        Quaternion rotation = Quaternion.Euler(0f, 0f, Random.Range(0f, 360f));
+        Vector3 scale = Vector3.one * Random.Range(0.1f, 0.2f) * scaleFactor;
+
+        GameObject instance = Instantiate(prefab, position, rotation);
+        instance.transform.localScale = scale;
+        
+        // Set the layer for the generated prefab
+        SetObjectLayer(instance, generatedObjectLayer);
+    }
+
+    private void SetObjectLayer(GameObject obj, LayerMask layer)
+    {
+        if (obj == null) return;
+        
+        // Convert LayerMask to layer index
+        int layerIndex = (int)Mathf.Log(layer.value, 2);
+        
+        // Set layer for the object and all its children
+        obj.layer = layerIndex;
+        foreach (Transform child in obj.transform)
+        {
+            SetObjectLayer(child.gameObject, layer);
+        }
     }
 }

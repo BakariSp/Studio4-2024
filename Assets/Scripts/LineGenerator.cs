@@ -20,6 +20,10 @@ public class LineGenerator : MonoBehaviour
     private float proximityThreshold = 0.1f; // Threshold for how close the objects need to be to enable drawing
     private bool isDrawingEnabled = false; // Controls whether drawing is currently enabled
 
+    [SerializeField] private DeleteControl deleteControl;
+    [SerializeField] private bool isDeleteModeOn = false;
+    private List<Vector3> currentDeletePoints = new List<Vector3>();
+
     void Start()
     {
         lineRenderer = GetComponent<LineRenderer>();
@@ -183,18 +187,25 @@ public class LineGenerator : MonoBehaviour
 
     private void DrawLine(Vector3 currentPosition)
     {
+        if (isDeleteModeOn)
+        {
+            HandleDeleteMode(currentPosition);
+            return;
+        }
+
         LineRenderer currentLineRenderer = lineRenderers[lineRenderers.Count - 1];
-        if (currentLineRenderer.positionCount == 0 || Vector3.Distance(currentPosition, currentLineRenderer.GetPosition(currentLineRenderer.positionCount - 1)) > distanceThreshold)
+        if (currentLineRenderer.positionCount == 0 || 
+            Vector3.Distance(currentPosition, currentLineRenderer.GetPosition(currentLineRenderer.positionCount - 1)) > distanceThreshold)
         {
             currentLineRenderer.positionCount++;
             currentLineRenderer.SetPosition(currentLineRenderer.positionCount - 1, currentPosition);
 
-            float slope = SlopeCalculator.CalculateSlope(currentLineRenderer.GetPosition(currentLineRenderer.positionCount - 2), currentPosition);
+            float slope = SlopeCalculator.CalculateSlope(
+                currentLineRenderer.GetPosition(currentLineRenderer.positionCount - 2), 
+                currentPosition
+            );
             Color lightColor = SlopeCalculator.GetColorFromSlope(slope);
             UpdateLightColor(lightColor);
-
-            // soundGenerator.TriggerSoundBasedOnSlope(slope);
-            // prefabGenerator.GeneratePrefabForSlope(slope);
         }
     }
 
@@ -227,6 +238,41 @@ public class LineGenerator : MonoBehaviour
     private void UpdateLightColor(Color color)
     {
         drawingLight.color = color;
+    }
+
+    private void HandleDeleteMode(Vector3 currentPosition)
+    {
+        if (!isDeleteModeOn) return;
+
+        currentDeletePoints.Add(currentPosition);
+        
+        // When drawing ends or distance threshold is met, process the delete area
+        if (!isDrawingEnabled && currentDeletePoints.Count >= 2)
+        {
+            ShapeDrawingEvent deleteEvent = new ShapeDrawingEvent(
+                null,  // No need for LineRenderer in delete mode
+                currentDeletePoints,
+                ShapeType.Line,
+                false
+            );
+            
+            deleteControl.ProcessDeleteArea(deleteEvent);
+            currentDeletePoints.Clear();
+        }
+    }
+
+    public void SetDeleteMode(bool state)
+    {
+        isDeleteModeOn = state;
+        if (!state)
+        {
+            currentDeletePoints.Clear();
+        }
+    }
+
+    public bool IsDeleteModeOn()
+    {
+        return isDeleteModeOn;
     }
 }
 

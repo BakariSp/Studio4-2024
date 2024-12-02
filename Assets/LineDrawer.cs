@@ -63,6 +63,10 @@ public class LineDrawer : MonoBehaviour
     [SerializeField] private float closeShapeThreshold = 0.1f; // Maximum distance between start and end points to consider a shape closed
     [SerializeField] private bool allowOpenShapes = false; // Whether to allow open shapes to be recognized
 
+    [SerializeField] private DeleteControl deleteControl;
+    [SerializeField] private bool isDeleteModeOn = false;
+    private List<Vector3> currentDeletePoints = new List<Vector3>();
+
     void Start()
     {
         // Initialize capture camera
@@ -117,15 +121,29 @@ public class LineDrawer : MonoBehaviour
                 {
                     if (!InsideBoxCollider)
                     {
-                        DrawLine(obj);
+                        if (isDeleteModeOn)
+                        {
+                            HandleDeleteMode(obj);
+                        }
+                        else
+                        {
+                            DrawLine(obj);
+                        }
                     }
                 }
             }
             else if (!inactiveObjects.Contains(obj) && activeLines.ContainsKey(obj))
             {
-                // Line drawing just finished
-                LineRenderer finishedLine = activeLines[obj];
-                CheckShapeRecognition(finishedLine);
+                if (isDeleteModeOn)
+                {
+                    ProcessDeleteArea();
+                }
+                else
+                {
+                    // Line drawing just finished
+                    LineRenderer finishedLine = activeLines[obj];
+                    CheckShapeRecognition(finishedLine);
+                }
                 inactiveObjects.Add(obj);
             }
         }
@@ -701,5 +719,47 @@ public class LineDrawer : MonoBehaviour
             renderTexture.Release();
         if (captureCamera != null)
             Destroy(captureCamera.gameObject);
+    }
+
+    private void HandleDeleteMode(GameObject obj)
+    {
+        if (!isDeleteModeOn) return;
+
+        Vector3 currentPosition = obj.transform.position;
+        currentDeletePoints.Add(currentPosition);
+    }
+
+    private void ProcessDeleteArea()
+    {
+        if (!isDeleteModeOn || currentDeletePoints.Count < 2) return;
+
+        ShapeDrawingEvent deleteEvent = new ShapeDrawingEvent(
+            null,
+            currentDeletePoints,
+            ShapeType.Line,
+            false
+        );
+        
+        deleteControl.ProcessDeleteArea(deleteEvent);
+        currentDeletePoints.Clear();
+    }
+
+    public void SetDeleteMode(bool state)
+    {
+        isDeleteModeOn = state;
+        if (!state)
+        {
+            currentDeletePoints.Clear();
+        }
+    }
+
+    public void ToggleDeleteMode()
+    {
+        isDeleteModeOn = !isDeleteModeOn;
+    }
+
+    public bool IsDeleteModeOn()
+    {
+        return isDeleteModeOn;
     }
 }
