@@ -81,7 +81,7 @@ namespace Oculus.VoiceSDK.UX
         }
 
         // On click, activate if not active & deactivate if active
-        private void OnClick()
+        public void OnClick()
         {
             if (!_isActive)
             {
