@@ -23,6 +23,7 @@ public class VoiceIntentController : MonoBehaviour
     private bool appVoiceActive;
 
     [SerializeField] private BuildModeManager buildModeManager;
+    [SerializeField] private GameObject myPositionObject;
 
     private void Awake()
     {
@@ -67,12 +68,33 @@ public class VoiceIntentController : MonoBehaviour
     public void SetColor(string[] info)
     {
         DisplayValues("SetColor:", info);
-        // set color info based on intent response
-        if(info.Length > 0 && ColorUtility.TryParseHtmlString(info[0], out Color color))
+        Color targetColor;
+        // Case 1: Object and color specified
+        if (info.Length > 1 && 
+            Enum.TryParse(info[0], true, out Object parsedObject) &&
+            ColorUtility.TryParseHtmlString(info[1], out targetColor))
         {
-            foreach(var controller in controllers)
+            var objectController = controllers.FirstOrDefault(c => c.Object == parsedObject);
+            if (objectController != null)
             {
-                controller.SetColor(color);
+                objectController.SetColor(targetColor);
+            }
+        }
+        // Case 2: Only color specified (try to use "it" or "this" as target)
+        else if (info.Length > 0 && ColorUtility.TryParseHtmlString(info[0], out targetColor))
+        {
+            var defaultObject = controllers.FirstOrDefault(c => c.Object == Object.It || c.Object == Object.This);
+            if (defaultObject != null)
+            {
+                defaultObject.SetColor(targetColor);
+            }
+            else
+            {
+                // Fallback: affect all objects if no "it" or "this" object is found
+                foreach (var controller in controllers)
+                {
+                    controller.SetColor(targetColor);
+                }
             }
         }
     }
@@ -80,28 +102,88 @@ public class VoiceIntentController : MonoBehaviour
     public void SetRotation(string[] info)
     {
         DisplayValues("SetRotation:", info);
-        // set rotation info based on intent response
-        if(info.Length > 0 && float.TryParse(info[0], out float targetRotation))
+        // Case 1: Object and descriptive rotation specified
+        if (info.Length > 1 && Enum.TryParse(info[0], true, out Object targetObject))
         {
-            foreach(var controller in controllers)
+            string rotationDescription = string.Join(" ", info.Skip(1));
+            float rotationAmount = ParseRotationDescription(rotationDescription);
+            
+            var objectController = controllers.FirstOrDefault(c => c.Object == targetObject);
+            if (objectController != null)
             {
-                controller.RotateTo(targetRotation);
+                objectController.RotateTo(rotationAmount);
             }
         }
+        // Case 2: Only rotation specified (try to use "it" or "this" as target)
+        else if (info.Length > 0)
+        {
+            float rotationAmount = ParseRotationDescription(info[0]);
+            var defaultObject = controllers.FirstOrDefault(c => c.Object == Object.It || c.Object == Object.This);
+            if (defaultObject != null)
+            {
+                defaultObject.RotateTo(rotationAmount);
+            }
+            else
+            {
+                // Fallback: affect all objects if no "it" or "this" object is found
+                foreach (var controller in controllers)
+                {
+                    controller.RotateTo(rotationAmount);
+                }
+            }
+        }
+    }
+
+    private float ParseRotationDescription(string description)
+    {
+        description = description.ToLower();
+        
+        // Default rotation amounts
+        if (description.Contains("little") || description.Contains("bit"))
+            return 15f;
+        if (description.Contains("lot") || description.Contains("much"))
+            return 90f;
+        if (description.Contains("completely") || description.Contains("around"))
+            return 180f;
+        
+        // If no matching description, try to parse as number
+        if (float.TryParse(description, out float rotation))
+            return rotation;
+            
+        // Default rotation if nothing matches
+        return 45f;
     }
 
     public void MoveObject(string[] info)
     {
         DisplayValues("MoveObject:", info);
-        // move object info based on intent response
-        if(info.Length > 1 && 
-           Enum.TryParse(info[0], true, out Object targetObject) &&
-           Enum.TryParse(info[1], true, out Direction direction))
+        Direction parsedDirection;
+        // Case 1: Object and direction specified
+        if (info.Length > 1 && 
+            Enum.TryParse(info[0], true, out Object parsedObject) &&
+            Enum.TryParse(info[1], true, out parsedDirection))
         {
-            var objectController = controllers.FirstOrDefault(c => c.Object == targetObject);
-            if(objectController != null)
+            var objectController = controllers.FirstOrDefault(c => c.Object == parsedObject);
+            if (objectController != null)
             {
-                objectController.MoveDirection(direction);
+                objectController.MoveDirection(parsedDirection, myPositionObject ? myPositionObject : null);
+            }
+        }
+        // Case 2: Only direction specified (try to use "it" or "this" as target)
+        else if (info.Length > 0 && Enum.TryParse(info[0], true, out parsedDirection))
+        {
+            var defaultObject = controllers.FirstOrDefault(c => c.Object == Object.It || c.Object == Object.This);
+            if (defaultObject != null)
+            {
+                defaultObject.MoveDirection(parsedDirection, myPositionObject ? myPositionObject : null);
+            }
+            else
+            {
+                // Fallback: affect all objects if no "it" or "this" object is found
+                foreach (var controller in controllers)
+                {
+                    controller.MoveDirection(parsedDirection, myPositionObject ? myPositionObject : null);
+                }
             }
         }
     }
@@ -150,6 +232,8 @@ public enum Object
     Cube,
     Tree,
     Wall,
+    It,
+    This,
 }
 
 public enum Direction
@@ -160,6 +244,9 @@ public enum Direction
     Right,
     Up,
     Down,
+    Here,
+    Closer,
+    Further,
 }
 
 public enum Mode

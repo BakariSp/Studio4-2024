@@ -67,6 +67,21 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b00d38211f31021489665690d933d537, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8519068318200263412}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b00d38211f31021489665690d933d537, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2784511744729990267}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b00d38211f31021489665690d933d537, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1393205302871261508}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b00d38211f31021489665690d933d537, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6647421278937667346}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b00d38211f31021489665690d933d537, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4422205787997285749}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b00d38211f31021489665690d933d537, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2507796532214625188}
   m_SourcePrefab: {fileID: 100100000, guid: b00d38211f31021489665690d933d537, type: 3}
 --- !u!1 &5812862943208076393 stripped
 GameObject:
@@ -94,3 +109,128 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.3526933, y: 4.8118362, z: 1.3323627}
   m_Center: {x: -0.017915785, y: 2.4059181, z: 0.02805844}
+--- !u!114 &2784511744729990267
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5812862943208076393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8aec12c79f1f90244a02830e246e0c7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetObject: 1
+  moveDistance: 1
+  rotationSpeed: 5
+--- !u!114 &1393205302871261508
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5812862943208076393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 25a2aa6f41e516b43913d368d2e9f452, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _highlightMaterial: {fileID: 2100000, guid: 0e21c8d13b13e934a83a27e270c16511, type: 2}
+  _highlightColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  _glowIntensity: 1
+--- !u!114 &6647421278937667346
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5812862943208076393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb86ba9d4c5126e48bfef9b0c9550e9d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _interactorFilters: []
+  _maxInteractors: -1
+  _maxSelectingInteractors: -1
+  _data: {fileID: 0}
+  _pointableElement: {fileID: 0}
+  _surface: {fileID: 0}
+  _selectSurface: {fileID: 0}
+  _movementProvider: {fileID: 0}
+  _tiebreakerScore: 0
+--- !u!114 &4422205787997285749
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5812862943208076393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1464721f2283eb14e94a33e812b47be4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _interactableView: {fileID: 0}
+  _whenHover:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: HighlightSelected, Assembly-CSharp
+        m_MethodName: ApplyHighlight
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
+  _whenUnhover:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: HighlightSelected, Assembly-CSharp
+        m_MethodName: ApplyHighlight
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  _whenSelect:
+    m_PersistentCalls:
+      m_Calls: []
+  _whenUnselect:
+    m_PersistentCalls:
+      m_Calls: []
+  _whenInteractorViewAdded:
+    m_PersistentCalls:
+      m_Calls: []
+  _whenInteractorViewRemoved:
+    m_PersistentCalls:
+      m_Calls: []
+  _whenSelectingInteractorViewAdded:
+    m_PersistentCalls:
+      m_Calls: []
+  _whenSelectingInteractorViewRemoved:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &2507796532214625188
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5812862943208076393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2140d2b457bea84881488302059889b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _collider: {fileID: 8519068318200263412}

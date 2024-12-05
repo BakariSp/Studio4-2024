@@ -3,7 +3,8 @@ using UnityEngine;
 public class ShapeController : MonoBehaviour
 {
     [SerializeField]
-    private Object targetObject;
+    public Object targetObject;
+    private Object _originalTargetObject;
     [SerializeField]
     private float moveDistance = 1f;
     [SerializeField]
@@ -19,6 +20,7 @@ public class ShapeController : MonoBehaviour
     {
         meshRenderer = GetComponent<MeshRenderer>();
         targetRotation = transform.eulerAngles.y;
+        _originalTargetObject = targetObject;
     }
 
     private void Update()
@@ -52,7 +54,20 @@ public class ShapeController : MonoBehaviour
         isRotating = true;
     }
 
-    public void MoveDirection(Direction direction)
+    public void RotateTo(string rotationAmount)
+    {
+        if (rotationAmount.ToLower() == "a little bit")
+        {
+            targetRotation = 20f;
+        }
+        else if (float.TryParse(rotationAmount, out float degrees))
+        {
+            targetRotation = degrees;
+        }
+        isRotating = true;
+    }
+
+    public void MoveDirection(Direction direction, GameObject target = null)
     {
         Vector3 moveVector = direction switch
         {
@@ -62,9 +77,22 @@ public class ShapeController : MonoBehaviour
             Direction.Right => Vector3.right,
             Direction.Up => Vector3.up,
             Direction.Down => Vector3.down,
+            Direction.Here when target != null => new Vector3(target.transform.position.x, transform.position.y, target.transform.position.z) - transform.position,
+            Direction.Closer when target != null => (target.transform.position - transform.position).normalized,
+            Direction.Further when target != null => (target.transform.position - transform.position).normalized * -1,
             _ => Vector3.zero
         };
 
         transform.Translate(moveVector * moveDistance);
+    }
+
+    public void SetTargetObject(Object newTarget)
+    {
+        targetObject = newTarget;
+    }
+
+    public void ResetTargetObject()
+    {
+        targetObject = _originalTargetObject;
     }
 }
