@@ -234,6 +234,7 @@ public enum Object
     Wall,
     It,
     This,
+    Rock,
 }
 
 public enum Direction

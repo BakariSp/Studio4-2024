@@ -33,14 +33,464 @@ MonoBehaviour:
     isPrivate: 1
     createdAt: 2024-12-01T15:10:46-0800
     trainingStatus: 1
-    lastTrainDuration: 52
-    lastTrainedAt: 2024-12-01T18:20:17-0800
-    nextTrainAt: 2024-12-01T18:19:25-0800
-    intents: []
-    entities: []
+    lastTrainDuration: 54
+    lastTrainedAt: 2024-12-04T12:36:20-0800
+    nextTrainAt: 2024-12-04T12:35:26-0800
+    intents:
+    - id: 496690550088301
+      name: move_object
+      entities:
+      - name: direction:direction
+        id: 2891718850992356
+      - name: mode:mode
+        id: 894638672818898
+      - name: object:object
+        id: 1554794085401139
+    - id: 1086955895934244
+      name: set_color
+      entities:
+      - name: color:color
+        id: 1553562202021004
+      - name: object:object
+        id: 1554794085401139
+    - id: 3504649949837587
+      name: set_mode
+      entities:
+      - name: mode:mode
+        id: 894638672818898
+    - id: 1508763089836259
+      name: set_rotation
+      entities:
+      - name: object:object
+        id: 1554794085401139
+      - name: rotation:rotation
+        id: 932052708330604
+      - name: value:value
+        id: 501665122901806
+    - id: 540708442202449
+      name: value
+      entities: []
+    entities:
+    - name: color
+      id: 2085829488498340
+      lookups:
+      - free-text
+      - keywords
+      roles:
+      - name: color
+        id: 1553562202021004
+      keywords:
+      - keyword: blue
+        synonyms:
+        - blue
+      - keyword: green
+        synonyms:
+        - green
+      - keyword: red
+        synonyms:
+        - red
+      - keyword: yellow
+        synonyms:
+        - yellow
+    - name: direction
+      id: 1589114078639236
+      lookups:
+      - free-text
+      - keywords
+      roles:
+      - name: direction
+        id: 2891718850992356
+      keywords:
+      - keyword: backward
+        synonyms:
+        - backward
+      - keyword: closer
+        synonyms:
+        - closer
+      - keyword: down
+        synonyms:
+        - down
+      - keyword: forward
+        synonyms:
+        - forward
+      - keyword: further
+        synonyms:
+        - further
+      - keyword: here
+        synonyms:
+        - here
+      - keyword: left
+        synonyms:
+        - left
+      - keyword: right
+        synonyms:
+        - right
+      - keyword: up
+        synonyms:
+        - up
+    - name: mode
+      id: 1128963378945992
+      lookups:
+      - free-text
+      - keywords
+      roles:
+      - name: mode
+        id: 894638672818898
+      keywords:
+      - keyword: create tree
+        synonyms:
+        - create tree
+      - keyword: mountain mode
+        synonyms:
+        - mountain mode
+      - keyword: tree mode
+        synonyms:
+        - three mode
+        - tree mode
+      - keyword: wall mode
+        synonyms:
+        - wall mode
+    - name: object
+      id: 1325787078579802
+      lookups:
+      - free-text
+      - keywords
+      roles:
+      - name: object
+        id: 1554794085401139
+      keywords:
+      - keyword: cube
+        synonyms:
+        - cube
+      - keyword: it
+        synonyms:
+        - it
+      - keyword: this
+        synonyms:
+        - this
+      - keyword: tree
+        synonyms:
+        - three
+        - tree
+      - keyword: wall
+        synonyms:
+        - wall
+    - name: rotate
+      id: 563144579655769
+      lookups:
+      - free-text
+      - keywords
+      roles:
+      - name: rotate
+        id: 1806469983429954
+      keywords: []
+    - name: rotation
+      id: 1115231236845279
+      lookups:
+      - free-text
+      - keywords
+      roles:
+      - name: rotation
+        id: 932052708330604
+      keywords:
+      - keyword: 20
+        synonyms:
+        - 20
+      - keyword: 40
+        synonyms:
+        - 40
+      - keyword: a little bit
+        synonyms:
+        - a little bit
+      - keyword: a lot
+        synonyms:
+        - a lot
+      - keyword: around
+        synonyms:
+        - around
+    - name: value
+      id: 1124112932995946
+      lookups:
+      - free-text
+      - keywords
+      roles:
+      - name: value
+        id: 501665122901806
+      keywords:
+      - keyword: a bit
+        synonyms:
+        - a bit
+      - keyword: a little bit
+        synonyms:
+        - a little bit
     traits: []
     versionTags: []
-    voices: []
+    voices:
+    - name: wit$Rebecca
+      locale: en_US
+      gender: female
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Charlie
+      locale: en_US
+      gender: male
+      styles:
+      - default
+      - soft
+      - fast
+      - projected
+    - name: wit$Cooper
+      locale: en_US
+      gender: male
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Vampire
+      locale: en_US
+      gender: male
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Prospector
+      locale: en_US
+      gender: male
+      styles:
+      - default
+    - name: wit$Cody
+      locale: en_US
+      gender: male
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Remi
+      locale: en_US
+      gender: female
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Cam
+      locale: en_US
+      gender: male
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Connor
+      locale: en_US
+      gender: male
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Railey
+      locale: en_US
+      gender: female
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Cael
+      locale: en_US
+      gender: male
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Carl
+      locale: en_US
+      gender: male
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Rubie
+      locale: en_US
+      gender: female
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Overconfident
+      locale: en_US
+      gender: male
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Disaffected
+      locale: en_US
+      gender: female
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Hollywood
+      locale: en_US
+      gender: female
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Trendy
+      locale: en_US
+      gender: female
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Cartoon Baby
+      locale: en_US
+      gender: nonbinary
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Surfer
+      locale: en_US
+      gender: male
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Southern Accent
+      locale: en_US
+      gender: male
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Kenyan Accent
+      locale: en_US
+      gender: female
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Cartoon Kid
+      locale: en_US
+      gender: female
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Cartoon Villain
+      locale: en_US
+      gender: female
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Rosie
+      locale: en_CA
+      gender: female
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Colin
+      locale: en_CA
+      gender: male
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Pirate
+      locale: en_GB
+      gender: male
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$British Butler
+      locale: en_GB
+      gender: male
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Whimsical
+      locale: en_GB
+      gender: female
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Wizard
+      locale: en_GB
+      gender: male
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
+    - name: wit$Cockney Accent
+      locale: en_GB
+      gender: nonbinary
+      styles:
+      - default
+      - soft
+      - formal
+      - fast
+      - projected
   _configData:
   - {fileID: -728634746227613297}
   _configurationId: 2f4527e0-9436-4deb-91cd-966219a22413
