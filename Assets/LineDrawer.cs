@@ -9,8 +9,8 @@ public class LineDrawer : MonoBehaviour
     public GameObject[] drawingObjects; // Array of drawing objects
     public GameObject lineRendererPrefab;
     public float distanceThreshold = 0.01f;
-    public GameObject leftHandPen;  // Left hand pen for rectangle mode
-    public GameObject rightHandPen; // Right hand pen for rectangle mode
+    // public GameObject leftHandPen;  // Left hand pen for rectangle mode
+    // public GameObject rightHandPen; // Right hand pen for rectangle mode
     public bool isRectangleMode = false;
     public Material lineMaterial; // Add this line to specify a material for the line renderer
     public ShapeRecognizer shapeRecognizer;
@@ -93,6 +93,7 @@ public class LineDrawer : MonoBehaviour
 
     void Update()
     {
+        /*
         if (isRectangleMode)
         {
             UpdateRectangleMode();
@@ -101,6 +102,8 @@ public class LineDrawer : MonoBehaviour
         {
             UpdateNormalMode();
         }
+        */
+        UpdateNormalMode();
     }
 
     private void UpdateNormalMode()
@@ -149,6 +152,7 @@ public class LineDrawer : MonoBehaviour
         }
     }
 
+    /* Rectangle mode is disable for now
     private void UpdateRectangleMode()
     {
         bool bothPensActive = leftHandPen.activeSelf && rightHandPen.activeSelf;
@@ -224,6 +228,10 @@ public class LineDrawer : MonoBehaviour
         leftHandPoints.Clear();
         rightHandPoints.Clear();
     }
+
+    
+    */
+    // Rectangle mode is disable for now //
 
     private List<Vector3> CombineAndSmoothPoints()
     {
@@ -446,7 +454,7 @@ public class LineDrawer : MonoBehaviour
         );
     }
 
-    private void StartNewLine(GameObject obj)
+    public void StartNewLine(GameObject obj)
     {
         GameObject newLineObj = Instantiate(lineRendererPrefab, Vector3.zero, Quaternion.identity);
         // Set the layer to "Drawing"
